@@ -94,7 +94,7 @@ func after3(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	c := caesar.New()
-	c.Any("/", handlerIndex)
+	c.Any("", handlerIndex)
 	c.Get("/d", handlerDefault)
 	c.Get("/c", handlerCaesar)
 	c.Get("/s", handlerSleep)
@@ -135,6 +135,17 @@ func main() {
 	bp2.SetErrorHandler(errorHandlerBp)
 
 	c.RegisterBlueprint(bp2)
+
+	// blueprint 3
+	bp3, _ := caesar.NewBlueprint("/")
+	bp3.Any("/bp3", handlerIndex)
+	bp3.Get("/bp3/d", handlerDefault)
+	bp3.Get("/bp3/c", handlerCaesar)
+	bp3.Get("/bp3/s", handlerSleep)
+	bp3.Get("/bp3/r/{id}", handlerRest)
+	bp3.Get("/bp3/p", handlerPanic)
+
+	c.RegisterBlueprint(bp3)
 
 	// start server
 	gracefuldown.Run()

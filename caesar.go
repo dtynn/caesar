@@ -10,7 +10,10 @@ import (
 	"github.com/qiniu/log"
 )
 
-var logger = log.Std
+var (
+	logger         = log.Std
+	makeRequestURI = request.MakeRequestURI
+)
 
 type caesar struct {
 	mutex   sync.Mutex
@@ -106,8 +109,12 @@ func (this *caesar) build() error {
 		if err != nil {
 			return err
 		}
-		logger.Debugf("app handler: %s %s", h.Methods, h.Path)
-		r := this.router.HandleFunc(h.Path, handler)
+		path, err := makeRequestURI("/", h.Path)
+		if err != nil {
+			return err
+		}
+		logger.Debugf("app handler: %s %s", h.Methods, path)
+		r := this.router.HandleFunc(path, handler)
 		if len(h.Methods) > 0 {
 			r.Methods(h.Methods...)
 		}

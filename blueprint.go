@@ -3,7 +3,6 @@ package caesar
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 	"sync"
 )
@@ -99,8 +98,13 @@ func (this *blueprint) build(csr *caesar) error {
 		if err != nil {
 			return err
 		}
-		logger.Debugf("blueprint handler: %s %s", h.Methods, path.Join(this.prefix, h.Path))
-		r := csr.router.HandleFunc(path.Join(this.prefix, h.Path), handler)
+		path, err := makeRequestURI(this.prefix, h.Path)
+		if err != nil {
+			return err
+		}
+
+		logger.Debugf("blueprint handler: %s %s", h.Methods, path)
+		r := csr.router.HandleFunc(path, handler)
 		if len(h.Methods) > 0 {
 			r.Methods(h.Methods...)
 		}
