@@ -5,9 +5,13 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 )
 
 type blueprint struct {
+	mutex sync.Mutex
+	built bool
+
 	prefix string
 	stack  *stack
 }
@@ -23,6 +27,9 @@ func NewBlueprint(prefix string) (*blueprint, error) {
 }
 
 func (this *blueprint) Register(path string, f interface{}, methods ...string) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addRequestHandler(path, f, methods...)
 }
 
@@ -55,18 +62,34 @@ func (this *blueprint) Any(path string, f interface{}) {
 }
 
 func (this *blueprint) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addBeforeHandler(handler)
 }
 
 func (this *blueprint) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addAfterHandler(handler)
 }
 
 func (this *blueprint) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.setErrorHandler(handler)
 }
 
 func (this *blueprint) build(csr *caesar) error {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if this.built {
+		return fmt.Errorf("this blueprint has been built")
+	}
+
 	if csr.stack == nil {
 		return fmt.Errorf("app stack must not be nil")
 	}
@@ -82,6 +105,9 @@ func (this *blueprint) build(csr *caesar) error {
 			r.Methods(h.Methods...)
 		}
 	}
+
+	this.built = true
+
 	return nil
 }
 

@@ -3,6 +3,7 @@ package caesar
 import (
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/dtynn/caesar/request"
 	"github.com/gorilla/mux"
@@ -12,10 +13,13 @@ import (
 var logger = log.Std
 
 type caesar struct {
+	mutex   sync.Mutex
+	running bool
+	debug   bool
+
 	blueprints []*blueprint
 	router     *mux.Router
 	stack      *stack
-	running    bool
 }
 
 func New() *caesar {
@@ -27,6 +31,9 @@ func New() *caesar {
 }
 
 func (this *caesar) Register(path string, f interface{}, methods ...string) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addRequestHandler(path, f, methods...)
 	return
 }
@@ -60,20 +67,32 @@ func (this *caesar) Any(path string, f interface{}) {
 }
 
 func (this *caesar) RegisterBlueprint(bp *blueprint) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	if bp != nil {
 		this.blueprints = append(this.blueprints, bp)
 	}
 }
 
 func (this *caesar) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addBeforeHandler(handler)
 }
 
 func (this *caesar) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.addAfterHandler(handler)
 }
 
 func (this *caesar) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	this.stack.setErrorHandler(handler)
 }
 
@@ -98,6 +117,9 @@ func (this *caesar) build() error {
 
 // run
 func (this *caesar) Run(addr string) error {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
 	if this.running {
 		return fmt.Errorf("the server is already running")
 	}
@@ -122,4 +144,15 @@ func (this *caesar) Run(addr string) error {
 	this.router.HandleFunc("/{any:.*}", request.DefaultNotFoundHandler)
 
 	return http.ListenAndServe(addr, this.router)
+}
+
+func (this *caesar) SetDebug(debug bool) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	this.debug = debug
+	if this.debug {
+		log.SetOutputLevel(log.Ldebug)
+	}
+	return
 }
