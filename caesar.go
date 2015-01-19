@@ -153,6 +153,8 @@ func (this *caesar) SetDebug(debug bool) {
 	this.debug = debug
 	if this.debug {
 		log.SetOutputLevel(log.Ldebug)
+	} else {
+		log.SetOutputLevel(log.Linfo)
 	}
 	return
 }
