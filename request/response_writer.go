@@ -7,10 +7,11 @@ import (
 )
 
 type ResponseWriter struct {
-	code int
-	body *bytes.Buffer
-	w    http.ResponseWriter
-	r    *http.Request
+	code      int
+	codeWrote bool
+	body      *bytes.Buffer
+	w         http.ResponseWriter
+	r         *http.Request
 }
 
 func NewResponseWriter(w http.ResponseWriter, r *http.Request) *ResponseWriter {
@@ -22,7 +23,12 @@ func NewResponseWriter(w http.ResponseWriter, r *http.Request) *ResponseWriter {
 }
 
 func (this *ResponseWriter) WriteHeader(code int) {
+	if this.codeWrote {
+		logger.Warn("ResponseWriter.WriteHeader multiple calls")
+		return
+	}
 	this.code = code
+	this.codeWrote = true
 }
 
 func (this *ResponseWriter) Write(b []byte) (int, error) {
@@ -45,5 +51,6 @@ func (this *ResponseWriter) Output() (int, error) {
 
 func (this *ResponseWriter) Reset() {
 	this.code = 0
+	this.codeWrote = false
 	this.body = new(bytes.Buffer)
 }

@@ -30,7 +30,7 @@ func handlerSleep(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlerLong(w http.ResponseWriter, r *http.Request) {
-	time.Sleep(20 * time.Second)
+	time.Sleep(5 * time.Second)
 	w.Write([]byte("handler sleep"))
 }
 
