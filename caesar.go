@@ -143,6 +143,7 @@ func (this *caesar) Run(addr string) error {
 
 	this.router.HandleFunc("/{any:.*}", request.DefaultNotFoundHandler)
 
+	logger.Info("Server running on ", addr)
 	return http.ListenAndServe(addr, this.router)
 }
 

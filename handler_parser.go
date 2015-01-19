@@ -52,7 +52,12 @@ func handlerMaker(f interface{},
 		w := request.NewResponseWriter(rw, req)
 
 		defer func() {
+			for _, after := range afterHandlers {
+				after(w, req)
+			}
+
 			request.DelC(c)
+
 			if p := recover(); p != nil {
 				logger.Errorf("PANIC: %v\n%s", p, string(debug.Stack()))
 				w.Reset()
@@ -75,10 +80,6 @@ func handlerMaker(f interface{},
 		in := inMaker(w, req)
 
 		val.Call(in)
-
-		for _, after := range afterHandlers {
-			after(w, req)
-		}
 		return
 	}, nil
 }

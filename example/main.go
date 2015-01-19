@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dtynn/caesar"
+	"github.com/dtynn/caesar/gracefuldown"
 	"github.com/dtynn/caesar/request"
 )
 
@@ -25,6 +26,11 @@ func handlerCaesar(c *request.C) {
 
 func handlerSleep(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Millisecond)
+	w.Write([]byte("handler sleep"))
+}
+
+func handlerLong(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(20 * time.Second)
 	w.Write([]byte("handler sleep"))
 }
 
@@ -95,7 +101,10 @@ func main() {
 	c.Post("/r/{id}", handlerRest)
 	c.Get("/p", handlerPanic)
 	c.Any("/any", hanlderAny)
+	c.Get("/long", handlerLong)
+	c.AddBeforeRequest(gracefuldown.GracefulBefore)
 	c.AddBeforeRequest(before1)
+	c.AddAfterRequest(gracefuldown.GracefulAfter)
 	c.AddAfterRequest(request.TimerAfterHandler)
 	c.AddAfterRequest(after1)
 	c.SetErrorHandler(errorHandlerApp)
@@ -128,5 +137,7 @@ func main() {
 	c.RegisterBlueprint(bp2)
 
 	// start server
+	gracefuldown.Run()
+	c.SetDebug(true)
 	c.Run("127.0.0.1:50081")
 }
