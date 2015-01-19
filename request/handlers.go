@@ -1,17 +1,21 @@
-package caesar
+package request
 
 import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/qiniu/log"
 )
 
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+var logger = log.Std
+
+func DefaultNotFoundHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(404)
 	w.Write([]byte(r.Method + " " + r.RequestURI + " not found"))
 }
 
-func defaultErrorHandler(w http.ResponseWriter, r *http.Request, code int, err error) {
+func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, code int, err error) {
 	w.WriteHeader(code)
 	w.Write([]byte(fmt.Sprintf("error: %s", err.Error())))
 }
@@ -19,7 +23,7 @@ func defaultErrorHandler(w http.ResponseWriter, r *http.Request, code int, err e
 func TimerAfterHandler(w http.ResponseWriter, r *http.Request) {
 	c := GetC(r)
 
-	logger.Info(fmt.Sprintf("%s\t%s\t%s", r.Method, r.RequestURI, sinceStr(c.start)))
+	logger.Info(fmt.Sprintf("%s\t%s\t%s", r.Method, r.RequestURI, SinceStr(c.start)))
 }
 
 var (
@@ -34,7 +38,7 @@ var (
 	floatNanosecond  = float64(time.Nanosecond)
 )
 
-func sinceStr(then time.Time) string {
+func SinceStr(then time.Time) string {
 	duration := time.Now().UnixNano() - then.UnixNano()
 	switch {
 	case duration > intSecond:

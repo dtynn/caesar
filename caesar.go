@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/dtynn/caesar/request"
 	"github.com/gorilla/mux"
 	"github.com/qiniu/log"
 )
@@ -11,15 +12,17 @@ import (
 var logger = log.Std
 
 type caesar struct {
-	router  *mux.Router
-	stack   *stack
-	running bool
+	blueprints []*blueprint
+	router     *mux.Router
+	stack      *stack
+	running    bool
 }
 
 func New() *caesar {
 	return &caesar{
-		router: mux.NewRouter(),
-		stack:  newStack(),
+		blueprints: []*blueprint{},
+		router:     mux.NewRouter(),
+		stack:      newAppStack(),
 	}
 }
 
@@ -56,16 +59,41 @@ func (this *caesar) Any(path string, f interface{}) {
 	this.Register(path, f)
 }
 
+func (this *caesar) RegisterBlueprint(bp *blueprint) {
+	if bp != nil {
+		this.blueprints = append(this.blueprints, bp)
+	}
+}
+
 func (this *caesar) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
 	this.stack.addBeforeHandler(handler)
+}
+
+func (this *caesar) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
+	this.stack.addAfterHandler(handler)
 }
 
 func (this *caesar) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
 	this.stack.setErrorHandler(handler)
 }
 
-func (this *caesar) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
-	this.stack.addAfterHandler(handler)
+func (this *caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter, req *http.Request), error) {
+	return handlerMaker(f, this.stack.beforeHandlers, this.stack.afterHandlers, this.stack.errorHandler)
+}
+
+func (this *caesar) build() error {
+	for _, h := range this.stack.requestHandlers {
+		handler, err := this.parseHandlerFunc(h.Fn)
+		if err != nil {
+			return err
+		}
+		logger.Debugf("app handler: %s %s", h.Methods, h.Path)
+		r := this.router.HandleFunc(h.Path, handler)
+		if len(h.Methods) > 0 {
+			r.Methods(h.Methods...)
+		}
+	}
+	return nil
 }
 
 // run
@@ -79,18 +107,19 @@ func (this *caesar) Run(addr string) error {
 		this.running = false
 	}()
 
-	for _, h := range this.stack.requestHandlers {
-		handler, err := parseHandlerFunc(h.fn, this.stack)
-		if err != nil {
+	// build blueprint router
+	for _, bp := range this.blueprints {
+		if err := bp.build(this); err != nil {
 			return err
-		}
-		r := this.router.HandleFunc(h.path, handler)
-		if len(h.methods) > 0 {
-			r.Methods(h.methods...)
 		}
 	}
 
-	this.router.HandleFunc("/{any:.*}", notFoundHandler)
+	// build app route
+	if err := this.build(); err != nil {
+		return err
+	}
+
+	this.router.HandleFunc("/{any:.*}", request.DefaultNotFoundHandler)
 
 	return http.ListenAndServe(addr, this.router)
 }

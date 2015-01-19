@@ -1,12 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/dtynn/caesar"
+	"github.com/dtynn/caesar/request"
 	"github.com/qiniu/log"
 )
 
@@ -14,39 +14,24 @@ func handlerIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("handler Index"))
 }
 
-func handlerA(w http.ResponseWriter, r *http.Request) {
+func handlerDefault(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(time.Millisecond)
-	w.Write([]byte("handler A"))
+	w.Write([]byte("handler golang http type"))
 }
 
-func handlerB(c *caesar.C) {
-	c.W.Write([]byte("handler B\n"))
-	c.W.Write([]byte(fmt.Sprintf("ID: %s", c.Args["id"])))
+func handlerCaesar(c *request.C) {
+	c.W.Write([]byte("handler caesar type\n"))
 }
 
-func handlerBPut(w http.ResponseWriter, r *http.Request) {
-	c := caesar.GetC(r)
-	w.Write([]byte("handler B Default\n"))
+func handlerSleep(w http.ResponseWriter, r *http.Request) {
+	time.Sleep(time.Millisecond)
+	w.Write([]byte("handler sleep"))
+}
+
+func handlerRest(w http.ResponseWriter, r *http.Request) {
+	c := request.GetC(r)
+	w.Write([]byte("handler rest\n"))
 	w.Write([]byte(fmt.Sprintf("ID: %s\n", c.Args["id"])))
-	w.Write([]byte("body from c1: "))
-	w.Write(c.Body())
-	w.Write([]byte("\n"))
-
-	w.Write([]byte("body from c2: "))
-	w.Write(c.Body())
-	w.Write([]byte("\n"))
-
-	w.Write([]byte("body from r1: "))
-	buf1 := new(bytes.Buffer)
-	buf1.ReadFrom(r.Body)
-	w.Write(buf1.Bytes())
-	w.Write([]byte("\n"))
-
-	w.Write([]byte("body from r2: "))
-	buf2 := new(bytes.Buffer)
-	buf2.ReadFrom(r.Body)
-	w.Write(buf2.Bytes())
-	w.Write([]byte("\n"))
 }
 
 func hanlderAny(w http.ResponseWriter, r *http.Request) {
@@ -59,33 +44,88 @@ func handlerPanic(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("handler panic"))
 }
 
-func errorHandler(w http.ResponseWriter, r *http.Request, code int, err error) {
-	log.Info("code:", code, "err:", err)
+func errorHandlerApp(w http.ResponseWriter, r *http.Request, code int, err error) {
 	w.WriteHeader(code)
-	w.Write([]byte("custome error handler:\n"))
+	w.Write([]byte("custome error handler for app:\n"))
 	w.Write([]byte(err.Error()))
 }
 
-func beforeHandler(w http.ResponseWriter, r *http.Request) (int, error) {
-	if r.Method == "DELETE" {
-		return 405, fmt.Errorf("method not allowed")
-	}
+func errorHandlerBp(w http.ResponseWriter, r *http.Request, code int, err error) {
+	w.WriteHeader(code)
+	w.Write([]byte("custome error handler for blueprint:\n"))
+	w.Write([]byte(err.Error()))
+}
+
+func before1(w http.ResponseWriter, r *http.Request) (int, error) {
+	log.Info("before app")
 	return 0, nil
 }
 
+func before2(w http.ResponseWriter, r *http.Request) (int, error) {
+	log.Info("before bp1")
+	return 0, fmt.Errorf("err in before")
+}
+
+func before3(w http.ResponseWriter, r *http.Request) (int, error) {
+	log.Info("before bp2")
+	return 0, nil
+}
+
+func after1(w http.ResponseWriter, r *http.Request) {
+	log.Info("after app")
+	return
+}
+
+func after2(w http.ResponseWriter, r *http.Request) {
+	log.Info("after bp1")
+	return
+}
+
+func after3(w http.ResponseWriter, r *http.Request) {
+	log.Info("after bp2")
+	return
+}
+
 func main() {
+	log.SetOutputLevel(log.Ldebug)
+	bp1, _ := caesar.NewBlueprint("/bp1/")
+	bp1.Any("/", handlerIndex)
+	bp1.Get("/d", handlerDefault)
+	bp1.Get("/c", handlerCaesar)
+	bp1.Get("/s", handlerSleep)
+	bp1.Get("/r/{id}", handlerRest)
+	bp1.Get("/p", handlerPanic)
+	bp1.AddBeforeRequest(before2)
+	bp1.AddAfterRequest(after2)
+
+	bp2, _ := caesar.NewBlueprint("/bp2")
+	bp2.Any("", handlerIndex)
+	bp2.Get("d", handlerDefault)
+	bp2.Get("c", handlerCaesar)
+	bp2.Get("s", handlerSleep)
+	bp2.Get("r/{id}", handlerRest)
+	bp2.Get("p", handlerPanic)
+	bp2.AddBeforeRequest(before3)
+	bp2.AddAfterRequest(after3)
+	bp2.SetErrorHandler(errorHandlerBp)
+
 	c := caesar.New()
 	c.Any("/", handlerIndex)
-	c.Get("/a", handlerA)
-	c.Post("/b/{id}", handlerB)
-	c.Put("/b/{id}", handlerBPut)
-	c.Any("/any", hanlderAny)
+	c.Get("/d", handlerDefault)
+	c.Get("/c", handlerCaesar)
+	c.Get("/s", handlerSleep)
+	c.Post("/r/{id}", handlerRest)
 	c.Get("/p", handlerPanic)
+	c.Any("/any", hanlderAny)
 
-	c.AddBeforeRequest(beforeHandler)
-	c.AddAfterRequest(caesar.TimerAfterHandler)
+	c.AddBeforeRequest(before1)
+	c.AddAfterRequest(request.TimerAfterHandler)
+	c.AddAfterRequest(after1)
 
-	c.SetErrorHandler(errorHandler)
+	c.SetErrorHandler(errorHandlerApp)
+
+	c.RegisterBlueprint(bp1)
+	c.RegisterBlueprint(bp2)
 
 	c.Run("127.0.0.1:50081")
 }

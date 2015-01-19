@@ -1,28 +1,12 @@
-package caesar
+package request
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
 )
-
-type reqBody struct {
-	*bytes.Buffer
-}
-
-func newReqBody(r io.Reader) *reqBody {
-	body := reqBody{new(bytes.Buffer)}
-	body.ReadFrom(r)
-	return &body
-}
-
-func (this *reqBody) Close() error {
-	return nil
-}
 
 type C struct {
 	Req *http.Request
@@ -36,7 +20,7 @@ type C struct {
 	mutex sync.RWMutex
 }
 
-func newContext(w http.ResponseWriter, r *http.Request) *C {
+func NewContext(w http.ResponseWriter, r *http.Request) *C {
 	body := newReqBody(r.Body)
 	r.Body = body
 	c := &C{

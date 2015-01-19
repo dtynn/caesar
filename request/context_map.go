@@ -1,4 +1,4 @@
-package caesar
+package request
 
 import (
 	"net/http"
@@ -11,6 +11,12 @@ var defaultContextMap = &contextMap{
 
 func GetC(r *http.Request) *C {
 	return defaultContextMap.get(r)
+}
+
+func DelC(c *C) {
+	if c != nil {
+		defaultContextMap.del(c)
+	}
 }
 
 type contextMap struct {
