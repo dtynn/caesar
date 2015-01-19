@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/dtynn/caesar"
 	"github.com/dtynn/caesar/request"
-	"github.com/qiniu/log"
 )
 
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
@@ -57,37 +57,50 @@ func errorHandlerBp(w http.ResponseWriter, r *http.Request, code int, err error)
 }
 
 func before1(w http.ResponseWriter, r *http.Request) (int, error) {
-	log.Info("before app")
+	log.Println("before app")
 	return 0, nil
 }
 
 func before2(w http.ResponseWriter, r *http.Request) (int, error) {
-	log.Info("before bp1")
+	log.Println("before bp1")
 	return 0, fmt.Errorf("err in before")
 }
 
 func before3(w http.ResponseWriter, r *http.Request) (int, error) {
-	log.Info("before bp2")
+	log.Println("before bp2")
 	return 0, nil
 }
 
 func after1(w http.ResponseWriter, r *http.Request) {
-	log.Info("after app")
+	log.Println("after app")
 	return
 }
 
 func after2(w http.ResponseWriter, r *http.Request) {
-	log.Info("after bp1")
+	log.Println("after bp1")
 	return
 }
 
 func after3(w http.ResponseWriter, r *http.Request) {
-	log.Info("after bp2")
+	log.Println("after bp2")
 	return
 }
 
 func main() {
-	log.SetOutputLevel(log.Ldebug)
+	c := caesar.New()
+	c.Any("/", handlerIndex)
+	c.Get("/d", handlerDefault)
+	c.Get("/c", handlerCaesar)
+	c.Get("/s", handlerSleep)
+	c.Post("/r/{id}", handlerRest)
+	c.Get("/p", handlerPanic)
+	c.Any("/any", hanlderAny)
+	c.AddBeforeRequest(before1)
+	c.AddAfterRequest(request.TimerAfterHandler)
+	c.AddAfterRequest(after1)
+	c.SetErrorHandler(errorHandlerApp)
+
+	// blueprint 1
 	bp1, _ := caesar.NewBlueprint("/bp1/")
 	bp1.Any("/", handlerIndex)
 	bp1.Get("/d", handlerDefault)
@@ -98,6 +111,9 @@ func main() {
 	bp1.AddBeforeRequest(before2)
 	bp1.AddAfterRequest(after2)
 
+	c.RegisterBlueprint(bp1)
+
+	// blueprint 2
 	bp2, _ := caesar.NewBlueprint("/bp2")
 	bp2.Any("", handlerIndex)
 	bp2.Get("d", handlerDefault)
@@ -109,23 +125,8 @@ func main() {
 	bp2.AddAfterRequest(after3)
 	bp2.SetErrorHandler(errorHandlerBp)
 
-	c := caesar.New()
-	c.Any("/", handlerIndex)
-	c.Get("/d", handlerDefault)
-	c.Get("/c", handlerCaesar)
-	c.Get("/s", handlerSleep)
-	c.Post("/r/{id}", handlerRest)
-	c.Get("/p", handlerPanic)
-	c.Any("/any", hanlderAny)
-
-	c.AddBeforeRequest(before1)
-	c.AddAfterRequest(request.TimerAfterHandler)
-	c.AddAfterRequest(after1)
-
-	c.SetErrorHandler(errorHandlerApp)
-
-	c.RegisterBlueprint(bp1)
 	c.RegisterBlueprint(bp2)
 
+	// start server
 	c.Run("127.0.0.1:50081")
 }
