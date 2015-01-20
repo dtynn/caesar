@@ -81,6 +81,13 @@ func (this *blueprint) SetErrorHandler(handler func(w http.ResponseWriter, r *ht
 	this.stack.setErrorHandler(handler)
 }
 
+func (this *blueprint) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	this.stack.setNotFoundHandler(handler)
+}
+
 func (this *blueprint) build(csr *caesar) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
@@ -109,6 +116,15 @@ func (this *blueprint) build(csr *caesar) error {
 			r.Methods(h.Methods...)
 		}
 	}
+
+	bpAnyHandler := notFoundHanlderPicker(csr.stack.notFoundHandler, this.stack.notFoundHandler)
+
+	bpAnyPath, err := makeRequestURI(this.prefix, anyPath)
+	if err != nil {
+		return err
+	}
+
+	csr.router.HandleFunc(bpAnyPath, bpAnyHandler)
 
 	this.built = true
 

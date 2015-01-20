@@ -128,3 +128,10 @@ func errHanlderPicker(appErrHandler, bpErrHandler func(w http.ResponseWriter, r 
 	}
 	return appErrHandler
 }
+
+func notFoundHanlderPicker(appNotFoundHandler, bpNotFoundHandler func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	if bpNotFoundHandler != nil {
+		return bpNotFoundHandler
+	}
+	return appNotFoundHandler
+}

@@ -100,6 +100,18 @@ func after3(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func appNotFound(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(404)
+	w.Write([]byte("app not found"))
+	return
+}
+
+func bpNotFound(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(404)
+	w.Write([]byte("blueprint not found"))
+	return
+}
+
 func main() {
 	svr := server{
 		name: "server name",
@@ -121,6 +133,7 @@ func main() {
 	c.AddAfterRequest(request.TimerAfterHandler)
 	c.AddAfterRequest(after1)
 	c.SetErrorHandler(errorHandlerApp)
+	c.SetNotFoundHandler(appNotFound)
 
 	// blueprint 1
 	bp1, _ := caesar.NewBlueprint("/bp1/")
@@ -132,6 +145,7 @@ func main() {
 	bp1.Get("/p", handlerPanic)
 	bp1.AddBeforeRequest(before2)
 	bp1.AddAfterRequest(after2)
+	bp1.SetNotFoundHandler(bpNotFound)
 
 	c.RegisterBlueprint(bp1)
 

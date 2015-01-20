@@ -11,6 +11,7 @@ type stack struct {
 	beforeHandlers  []func(w http.ResponseWriter, r *http.Request) (int, error)
 	afterHandlers   []func(w http.ResponseWriter, r *http.Request)
 	errorHandler    func(w http.ResponseWriter, r *http.Request, code int, err error)
+	notFoundHandler func(w http.ResponseWriter, r *http.Request)
 }
 
 func newAppStack() *stack {
@@ -19,6 +20,7 @@ func newAppStack() *stack {
 		beforeHandlers:  []func(w http.ResponseWriter, r *http.Request) (int, error){},
 		afterHandlers:   []func(w http.ResponseWriter, r *http.Request){},
 		errorHandler:    request.DefaultErrorHandler,
+		notFoundHandler: request.DefaultNotFoundHandler,
 	}
 }
 
@@ -28,6 +30,7 @@ func newBpStack() *stack {
 		beforeHandlers:  []func(w http.ResponseWriter, r *http.Request) (int, error){},
 		afterHandlers:   []func(w http.ResponseWriter, r *http.Request){},
 		errorHandler:    nil,
+		notFoundHandler: nil,
 	}
 }
 
@@ -51,5 +54,11 @@ func (this *stack) addAfterHandler(handler func(w http.ResponseWriter, r *http.R
 func (this *stack) setErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
 	if handler != nil {
 		this.errorHandler = handler
+	}
+}
+
+func (this *stack) setNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+	if handler != nil {
+		this.notFoundHandler = handler
 	}
 }

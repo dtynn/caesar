@@ -13,6 +13,7 @@ import (
 var (
 	logger         = log.Std
 	makeRequestURI = request.MakeRequestURI
+	anyPath        = "/{any:.*}"
 )
 
 type caesar struct {
@@ -99,6 +100,13 @@ func (this *caesar) SetErrorHandler(handler func(w http.ResponseWriter, r *http.
 	this.stack.setErrorHandler(handler)
 }
 
+func (this *caesar) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	this.stack.setNotFoundHandler(handler)
+}
+
 func (this *caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter, req *http.Request), error) {
 	return handlerMaker(f, this.stack.beforeHandlers, this.stack.afterHandlers, this.stack.errorHandler)
 }
@@ -119,6 +127,7 @@ func (this *caesar) build() error {
 			r.Methods(h.Methods...)
 		}
 	}
+	this.router.HandleFunc(anyPath, this.stack.notFoundHandler)
 	return nil
 }
 
@@ -147,8 +156,6 @@ func (this *caesar) Run(addr string) error {
 	if err := this.build(); err != nil {
 		return err
 	}
-
-	this.router.HandleFunc("/{any:.*}", request.DefaultNotFoundHandler)
 
 	logger.Info("Server running on ", addr)
 	return http.ListenAndServe(addr, this.router)
