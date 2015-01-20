@@ -117,14 +117,16 @@ func (this *blueprint) build(csr *caesar) error {
 		}
 	}
 
-	bpAnyHandler := notFoundHanlderPicker(csr.stack.notFoundHandler, this.stack.notFoundHandler)
+	if this.stack.notFoundHandler != nil {
+		bpAnyHandler := this.stack.notFoundHandler
 
-	bpAnyPath, err := makeRequestURI(this.prefix, anyPath)
-	if err != nil {
-		return err
+		bpAnyPath, err := makeRequestURI(this.prefix, anyPath)
+		if err != nil {
+			return err
+		}
+
+		csr.router.HandleFunc(bpAnyPath, bpAnyHandler)
 	}
-
-	csr.router.HandleFunc(bpAnyPath, bpAnyHandler)
 
 	this.built = true
 
