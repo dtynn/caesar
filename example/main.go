@@ -11,6 +11,14 @@ import (
 	"github.com/dtynn/caesar/request"
 )
 
+type server struct {
+	name string
+}
+
+func (this *server) handlerInServer(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("handler In Server: " + this.name))
+}
+
 func handlerIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("handler Index"))
 }
@@ -93,6 +101,10 @@ func after3(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	svr := server{
+		name: "server name",
+	}
+
 	c := caesar.New()
 	c.Any("", handlerIndex)
 	c.Get("/d", handlerDefault)
@@ -102,6 +114,7 @@ func main() {
 	c.Get("/p", handlerPanic)
 	c.Any("/any", hanlderAny)
 	c.Get("/long", handlerLong)
+	c.Get("/svr", svr.handlerInServer)
 	c.AddBeforeRequest(gracefuldown.GracefulBefore)
 	c.AddBeforeRequest(before1)
 	c.AddAfterRequest(gracefuldown.GracefulAfter)
