@@ -127,7 +127,8 @@ func (this *Caesar) build() error {
 			r.Methods(h.Methods...)
 		}
 	}
-	this.router.HandleFunc(anyPath, this.stack.notFoundHandler)
+
+	this.router.NotFoundHandler = http.HandlerFunc(this.stack.notFoundHandler)
 	return nil
 }
 

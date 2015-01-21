@@ -51,6 +51,8 @@ func handlerMaker(f interface{},
 		c := request.NewContext(rw, req)
 		w := request.NewResponseWriter(rw, req)
 
+		defer request.DelC(c)
+
 		defer func() {
 			for _, after := range afterHandlers {
 				after(w, req)
@@ -66,8 +68,6 @@ func handlerMaker(f interface{},
 				w.Reset()
 				errHandler(w, req, 599, fmt.Errorf("internal error"))
 			}
-
-			request.DelC(c)
 			w.Output()
 		}()
 

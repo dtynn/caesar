@@ -103,6 +103,7 @@ func after3(w http.ResponseWriter, r *http.Request) {
 }
 
 func appNotFound(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
 	w.Write([]byte("app not found"))
 	return
