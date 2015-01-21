@@ -61,13 +61,13 @@ func handlerMaker(f interface{},
 				errHandler(w, req, code, err)
 			}
 
-			request.DelC(c)
-
 			if p := recover(); p != nil {
-				logger.Errorf("PANIC: %v\n%s", p, string(debug.Stack()))
+				c.Logger.Errorf("PANIC: %v\n%s", p, string(debug.Stack()))
 				w.Reset()
 				errHandler(w, req, 599, fmt.Errorf("internal error"))
 			}
+
+			request.DelC(c)
 			w.Output()
 		}()
 
