@@ -56,6 +56,11 @@ func handlerMaker(f interface{},
 				after(w, req)
 			}
 
+			if code, err := c.Error(); code != 0 || err != nil {
+				w.Reset()
+				errHandler(w, req, code, err)
+			}
+
 			request.DelC(c)
 
 			if p := recover(); p != nil {
@@ -67,7 +72,7 @@ func handlerMaker(f interface{},
 		}()
 
 		for _, before := range beforeHandlers {
-			if code, err := before(w, req); err != nil {
+			if code, err := before(w, req); code != 0 || err != nil {
 				if code <= 0 {
 					code = 500
 				}

@@ -8,6 +8,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type abort struct {
+	code int
+	err  error
+}
+
 type C struct {
 	Req *http.Request
 	W   http.ResponseWriter
@@ -17,6 +22,7 @@ type C struct {
 	Args map[string]string
 	g    map[string]interface{}
 
+	abort *abort
 	start time.Time
 
 	mutex sync.RWMutex
@@ -57,4 +63,34 @@ func (this *C) Get(key string) interface{} {
 
 func (this *C) Body() []byte {
 	return this.Req.Body.(*reqBody).Bytes()
+}
+
+func (this *C) Abort(code int, err error) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if this.abort != nil {
+		return
+	}
+
+	if code == 0 && err == nil {
+		return
+	}
+
+	this.abort = &abort{
+		code: code,
+		err:  err,
+	}
+	return
+}
+
+func (this *C) Error() (int, error) {
+	this.mutex.RLock()
+	defer this.mutex.RUnlock()
+
+	if this.abort == nil {
+		return 0, nil
+	}
+
+	return this.abort.code, this.abort.err
 }
