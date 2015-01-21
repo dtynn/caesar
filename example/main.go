@@ -30,6 +30,7 @@ func handlerDefault(w http.ResponseWriter, r *http.Request) {
 
 func handlerCaesar(c *request.C) {
 	c.W.Write([]byte("handler caesar type\n"))
+	c.Logger.Info("test logger")
 }
 
 func handlerSleep(w http.ResponseWriter, r *http.Request) {
@@ -46,6 +47,7 @@ func handlerRest(w http.ResponseWriter, r *http.Request) {
 	c := request.GetC(r)
 	w.Write([]byte("handler rest\n"))
 	w.Write([]byte(fmt.Sprintf("ID: %s\n", c.Args["id"])))
+	c.Logger.Info("test logger")
 }
 
 func hanlderAny(w http.ResponseWriter, r *http.Request) {

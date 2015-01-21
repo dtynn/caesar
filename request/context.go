@@ -12,6 +12,8 @@ type C struct {
 	Req *http.Request
 	W   http.ResponseWriter
 
+	Logger *xlogger
+
 	Args map[string]string
 	g    map[string]interface{}
 
@@ -26,6 +28,8 @@ func NewContext(w http.ResponseWriter, r *http.Request) *C {
 	c := &C{
 		Req: r,
 		W:   w,
+
+		Logger: newXLogger(w, r),
 
 		Args: mux.Vars(r),
 		g:    map[string]interface{}{},

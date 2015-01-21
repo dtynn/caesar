@@ -23,7 +23,7 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, code int, err e
 func TimerAfterHandler(w http.ResponseWriter, r *http.Request) {
 	c := GetC(r)
 
-	logger.Info(fmt.Sprintf("%s\t%s\t%s", r.Method, r.RequestURI, SinceStr(c.start)))
+	c.Logger.Info(fmt.Sprintf("%s\t%s\t%s", r.Method, r.RequestURI, SinceStr(c.start)))
 }
 
 var (
