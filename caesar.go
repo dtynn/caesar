@@ -159,7 +159,11 @@ func (this *Caesar) Run(addr string) error {
 	}
 
 	logger.Info("Server running on ", addr)
-	return http.ListenAndServe(addr, this.router)
+	err := http.ListenAndServe(addr, this.router)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	return err
 }
 
 func (this *Caesar) SetDebug(debug bool) {
