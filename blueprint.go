@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-type blueprint struct {
+type Blueprint struct {
 	mutex sync.Mutex
 	built bool
 
@@ -15,80 +15,80 @@ type blueprint struct {
 	stack  *stack
 }
 
-func NewBlueprint(prefix string) (*blueprint, error) {
+func NewBlueprint(prefix string) (*Blueprint, error) {
 	if !strings.HasPrefix(prefix, "/") {
 		return nil, fmt.Errorf("blueprint prefix must starts with \"/\"")
 	}
-	return &blueprint{
+	return &Blueprint{
 		prefix: prefix,
 		stack:  newBpStack(),
 	}, nil
 }
 
-func (this *blueprint) Register(path string, f interface{}, methods ...string) {
+func (this *Blueprint) Register(path string, f interface{}, methods ...string) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.addRequestHandler(path, f, methods...)
 }
 
-func (this *blueprint) Get(path string, f interface{}) {
+func (this *Blueprint) Get(path string, f interface{}) {
 	this.Register(path, f, "GET", "HEAD")
 }
 
-func (this *blueprint) Post(path string, f interface{}) {
+func (this *Blueprint) Post(path string, f interface{}) {
 	this.Register(path, f, "POST")
 }
 
-func (this *blueprint) Delete(path string, f interface{}) {
+func (this *Blueprint) Delete(path string, f interface{}) {
 	this.Register(path, f, "DELETE")
 }
 
-func (this *blueprint) Put(path string, f interface{}) {
+func (this *Blueprint) Put(path string, f interface{}) {
 	this.Register(path, f, "PUT")
 }
 
-func (this *blueprint) Head(path string, f interface{}) {
+func (this *Blueprint) Head(path string, f interface{}) {
 	this.Register(path, f, "HEAD")
 }
 
-func (this *blueprint) Options(path string, f interface{}) {
+func (this *Blueprint) Options(path string, f interface{}) {
 	this.Register(path, f, "OPTIONS")
 }
 
-func (this *blueprint) Any(path string, f interface{}) {
+func (this *Blueprint) Any(path string, f interface{}) {
 	this.Register(path, f)
 }
 
-func (this *blueprint) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
+func (this *Blueprint) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.addBeforeHandler(handler)
 }
 
-func (this *blueprint) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
+func (this *Blueprint) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.addAfterHandler(handler)
 }
 
-func (this *blueprint) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
+func (this *Blueprint) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.setErrorHandler(handler)
 }
 
-func (this *blueprint) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+func (this *Blueprint) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.setNotFoundHandler(handler)
 }
 
-func (this *blueprint) build(csr *caesar) error {
+func (this *Blueprint) build(csr *Caesar) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
@@ -133,7 +133,7 @@ func (this *blueprint) build(csr *caesar) error {
 	return nil
 }
 
-func (this *blueprint) parseHandlerFunc(f interface{}, appStk *stack) (func(rw http.ResponseWriter, req *http.Request), error) {
+func (this *Blueprint) parseHandlerFunc(f interface{}, appStk *stack) (func(rw http.ResponseWriter, req *http.Request), error) {
 	return handlerMaker(f,
 		beforeHandlersMaker(appStk.beforeHandlers, this.stack.beforeHandlers),
 		afterHandlersMaker(appStk.afterHandlers, this.stack.afterHandlers),

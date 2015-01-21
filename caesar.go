@@ -16,25 +16,25 @@ var (
 	anyPath        = "/{any:.*}"
 )
 
-type caesar struct {
+type Caesar struct {
 	mutex   sync.Mutex
 	running bool
 	debug   bool
 
-	blueprints []*blueprint
+	blueprints []*Blueprint
 	router     *mux.Router
 	stack      *stack
 }
 
-func New() *caesar {
-	return &caesar{
-		blueprints: []*blueprint{},
+func New() *Caesar {
+	return &Caesar{
+		blueprints: []*Blueprint{},
 		router:     mux.NewRouter(),
 		stack:      newAppStack(),
 	}
 }
 
-func (this *caesar) Register(path string, f interface{}, methods ...string) {
+func (this *Caesar) Register(path string, f interface{}, methods ...string) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
@@ -42,35 +42,35 @@ func (this *caesar) Register(path string, f interface{}, methods ...string) {
 	return
 }
 
-func (this *caesar) Get(path string, f interface{}) {
+func (this *Caesar) Get(path string, f interface{}) {
 	this.Register(path, f, "GET", "HEAD")
 }
 
-func (this *caesar) Post(path string, f interface{}) {
+func (this *Caesar) Post(path string, f interface{}) {
 	this.Register(path, f, "POST")
 }
 
-func (this *caesar) Put(path string, f interface{}) {
+func (this *Caesar) Put(path string, f interface{}) {
 	this.Register(path, f, "PUT")
 }
 
-func (this *caesar) Delete(path string, f interface{}) {
+func (this *Caesar) Delete(path string, f interface{}) {
 	this.Register(path, f, "DELETE")
 }
 
-func (this *caesar) Head(path string, f interface{}) {
+func (this *Caesar) Head(path string, f interface{}) {
 	this.Register(path, f, "HEAD")
 }
 
-func (this *caesar) Options(path string, f interface{}) {
+func (this *Caesar) Options(path string, f interface{}) {
 	this.Register(path, f, "OPTIONS")
 }
 
-func (this *caesar) Any(path string, f interface{}) {
+func (this *Caesar) Any(path string, f interface{}) {
 	this.Register(path, f)
 }
 
-func (this *caesar) RegisterBlueprint(bp *blueprint) {
+func (this *Caesar) RegisterBlueprint(bp *Blueprint) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
@@ -79,39 +79,39 @@ func (this *caesar) RegisterBlueprint(bp *blueprint) {
 	}
 }
 
-func (this *caesar) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
+func (this *Caesar) AddBeforeRequest(handler func(w http.ResponseWriter, r *http.Request) (int, error)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.addBeforeHandler(handler)
 }
 
-func (this *caesar) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
+func (this *Caesar) AddAfterRequest(handler func(w http.ResponseWriter, r *http.Request)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.addAfterHandler(handler)
 }
 
-func (this *caesar) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
+func (this *Caesar) SetErrorHandler(handler func(w http.ResponseWriter, r *http.Request, code int, err error)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.setErrorHandler(handler)
 }
 
-func (this *caesar) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
+func (this *Caesar) SetNotFoundHandler(handler func(w http.ResponseWriter, r *http.Request)) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
 	this.stack.setNotFoundHandler(handler)
 }
 
-func (this *caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter, req *http.Request), error) {
+func (this *Caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter, req *http.Request), error) {
 	return handlerMaker(f, this.stack.beforeHandlers, this.stack.afterHandlers, this.stack.errorHandler)
 }
 
-func (this *caesar) build() error {
+func (this *Caesar) build() error {
 	for _, h := range this.stack.requestHandlers {
 		handler, err := this.parseHandlerFunc(h.Fn)
 		if err != nil {
@@ -132,7 +132,7 @@ func (this *caesar) build() error {
 }
 
 // run
-func (this *caesar) Run(addr string) error {
+func (this *Caesar) Run(addr string) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
@@ -161,7 +161,7 @@ func (this *caesar) Run(addr string) error {
 	return http.ListenAndServe(addr, this.router)
 }
 
-func (this *caesar) SetDebug(debug bool) {
+func (this *Caesar) SetDebug(debug bool) {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 
