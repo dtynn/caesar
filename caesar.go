@@ -121,7 +121,7 @@ func (this *Caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter
 
 func (this *Caesar) build() error {
 	prefix := "/"
-	if p := this.Config().Prefix; p != "" {
+	if p := this.cfg.Prefix; p != "" {
 		prefix = p
 	}
 
@@ -200,16 +200,4 @@ func (this *Caesar) SetConfig(cfg *Config) {
 		this.cfg = cfg
 	}
 	return
-}
-
-func (this *Caesar) Config() *Config {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
-
-	if this.cfg != nil {
-		return this.cfg
-	}
-	cfg := &Config{}
-	this.cfg = cfg
-	return cfg
 }

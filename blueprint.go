@@ -103,7 +103,7 @@ func (this *Blueprint) build(csr *Caesar) error {
 	var err error
 
 	prefix := this.prefix
-	if p := csr.Config().Prefix; p != "" {
+	if p := csr.cfg.Prefix; p != "" {
 		prefix, err = makeRequestURI(p, prefix)
 		if err != nil {
 			return err
