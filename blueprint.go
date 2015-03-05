@@ -100,12 +100,22 @@ func (this *Blueprint) build(csr *Caesar) error {
 		return fmt.Errorf("app stack must not be nil")
 	}
 
+	var err error
+
+	prefix := this.prefix
+	if p := csr.Config().Prefix; p != "" {
+		prefix, err = makeRequestURI(p, prefix)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, h := range this.stack.requestHandlers {
 		handler, err := this.parseHandlerFunc(h.Fn, csr.stack)
 		if err != nil {
 			return err
 		}
-		path, err := makeRequestURI(this.prefix, h.Path)
+		path, err := makeRequestURI(prefix, h.Path)
 		if err != nil {
 			return err
 		}

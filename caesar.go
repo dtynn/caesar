@@ -16,10 +16,16 @@ var (
 	anyPath        = "/{any:.*}"
 )
 
+type Config struct {
+	Prefix string
+}
+
 type Caesar struct {
 	mutex   sync.Mutex
 	running bool
 	debug   bool
+
+	cfg *Config
 
 	blueprints []*Blueprint
 	router     *mux.Router
@@ -31,6 +37,8 @@ func New() *Caesar {
 		blueprints: []*Blueprint{},
 		router:     mux.NewRouter(),
 		stack:      newAppStack(),
+
+		cfg: &Config{},
 	}
 }
 
@@ -112,12 +120,17 @@ func (this *Caesar) parseHandlerFunc(f interface{}) (func(rw http.ResponseWriter
 }
 
 func (this *Caesar) build() error {
+	prefix := "/"
+	if p := this.Config().Prefix; p != "" {
+		prefix = p
+	}
+
 	for _, h := range this.stack.requestHandlers {
 		handler, err := this.parseHandlerFunc(h.Fn)
 		if err != nil {
 			return err
 		}
-		path, err := makeRequestURI("/", h.Path)
+		path, err := makeRequestURI(prefix, h.Path)
 		if err != nil {
 			return err
 		}
@@ -177,4 +190,26 @@ func (this *Caesar) SetDebug(debug bool) {
 		log.SetOutputLevel(log.Linfo)
 	}
 	return
+}
+
+func (this *Caesar) SetConfig(cfg *Config) {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if cfg != nil {
+		this.cfg = cfg
+	}
+	return
+}
+
+func (this *Caesar) Config() *Config {
+	this.mutex.Lock()
+	defer this.mutex.Unlock()
+
+	if this.cfg != nil {
+		return this.cfg
+	}
+	cfg := &Config{}
+	this.cfg = cfg
+	return cfg
 }
