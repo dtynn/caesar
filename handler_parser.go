@@ -54,10 +54,6 @@ func handlerMaker(f interface{},
 		defer request.DelC(c)
 
 		defer func() {
-			for _, after := range afterHandlers {
-				after(w, req)
-			}
-
 			if code, err := c.Error(); code != 0 || err != nil {
 				w.Reset()
 				errHandler(w, req, code, err)
@@ -68,6 +64,11 @@ func handlerMaker(f interface{},
 				w.Reset()
 				errHandler(w, req, 599, fmt.Errorf("internal error"))
 			}
+
+			for _, after := range afterHandlers {
+				after(w, req)
+			}
+
 			w.Output()
 		}()
 
