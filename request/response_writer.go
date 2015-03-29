@@ -54,3 +54,7 @@ func (this *ResponseWriter) Reset() {
 	this.codeWrote = false
 	this.body = new(bytes.Buffer)
 }
+
+func (this *ResponseWriter) StatusCode() int {
+	return this.code
+}
