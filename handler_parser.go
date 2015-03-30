@@ -59,14 +59,14 @@ func handlerMaker(f interface{},
 				errHandler(w, req, code, err)
 			}
 
+			for _, after := range afterHandlers {
+				after(w, req)
+			}
+
 			if p := recover(); p != nil {
 				c.Logger.Errorf("PANIC: %v\n%s", p, string(debug.Stack()))
 				w.Reset()
 				errHandler(w, req, 599, fmt.Errorf("internal error"))
-			}
-
-			for _, after := range afterHandlers {
-				after(w, req)
 			}
 
 			w.Output()
