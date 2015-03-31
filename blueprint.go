@@ -133,7 +133,7 @@ func (this *Blueprint) build(csr *Caesar) error {
 			return err
 		}
 
-		bpAnyPath, err := makeRequestURI(this.prefix, anyPath)
+		bpAnyPath, err := makeRequestURI(this.prefix, AnyPath)
 		if err != nil {
 			return err
 		}

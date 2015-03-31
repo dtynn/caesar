@@ -13,7 +13,10 @@ import (
 var (
 	logger         = log.Std
 	makeRequestURI = request.MakeRequestURI
-	anyPath        = "/{any:.*}"
+)
+
+const (
+	AnyPath = "/{any:.*}"
 )
 
 type Config struct {
