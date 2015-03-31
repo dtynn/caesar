@@ -23,7 +23,11 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, code int, err e
 func TimerAfterHandler(w http.ResponseWriter, r *http.Request) {
 	c := GetC(r)
 	rw := w.(*ResponseWriter)
-	c.Logger.Info(fmt.Sprintf("[%d] %s | %s | %s", rw.code, r.Method, r.RequestURI, SinceStr(c.start)))
+	statusCode := rw.code
+	if statusCode == 0 {
+		statusCode = 200
+	}
+	c.Logger.Info(fmt.Sprintf("[%d] %s | %s | %s", statusCode, r.Method, r.RequestURI, SinceStr(c.start)))
 }
 
 var (
