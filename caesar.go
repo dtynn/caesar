@@ -141,7 +141,12 @@ func (this *Caesar) build() error {
 		}
 	}
 
-	this.router.NotFoundHandler = http.HandlerFunc(this.stack.notFoundHandler)
+	notFoundHandler, err := this.parseHandlerFunc(this.stack.notFoundHandler)
+	if err != nil {
+		return err
+	}
+
+	this.router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 	return nil
 }
 

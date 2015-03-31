@@ -128,7 +128,10 @@ func (this *Blueprint) build(csr *Caesar) error {
 	}
 
 	if this.stack.notFoundHandler != nil {
-		bpAnyHandler := this.stack.notFoundHandler
+		bpAnyHandler, err := this.parseHandlerFunc(this.stack.notFoundHandler, csr.stack)
+		if err != nil {
+			return err
+		}
 
 		bpAnyPath, err := makeRequestURI(this.prefix, anyPath)
 		if err != nil {
