@@ -13,6 +13,8 @@ import (
 var (
 	logger         = log.Std
 	makeRequestURI = request.MakeRequestURI
+
+	errServerClosed = fmt.Errorf("server closed")
 )
 
 const (
@@ -26,7 +28,9 @@ type Config struct {
 type Caesar struct {
 	mutex   sync.Mutex
 	running bool
+	closed  bool
 	debug   bool
+	quit    chan error
 
 	cfg *Config
 
@@ -40,6 +44,8 @@ func New() *Caesar {
 		blueprints: []*Blueprint{},
 		router:     mux.NewRouter(),
 		stack:      newAppStack(),
+
+		quit: make(chan error, 1),
 
 		cfg: &Config{},
 	}
@@ -156,12 +162,27 @@ func (this *Caesar) build() error {
 // run
 func (this *Caesar) Run(addr string) error {
 	this.mutex.Lock()
-	defer this.mutex.Unlock()
 
 	if this.running {
 		return fmt.Errorf("the server is already running")
 	}
 
+	if this.closed {
+		return fmt.Errorf("the server is closed")
+	}
+
+	this.mutex.Unlock()
+
+	go this.run(addr)
+	err := <-this.quit
+	if err != nil {
+		logger.Warn(err)
+	}
+
+	return err
+}
+
+func (this *Caesar) run(addr string) {
 	this.running = true
 	defer func() {
 		this.running = false
@@ -170,21 +191,29 @@ func (this *Caesar) Run(addr string) error {
 	// build blueprint router
 	for _, bp := range this.blueprints {
 		if err := bp.build(this); err != nil {
-			return err
+			this.quit <- err
+			return
 		}
 	}
 
 	// build app route
 	if err := this.build(); err != nil {
-		return err
+		this.quit <- err
+		return
 	}
 
 	logger.Info("Server running on ", addr)
 	err := http.ListenAndServe(addr, this.router)
-	if err != nil {
-		logger.Fatal(err)
+	this.quit <- err
+}
+
+func (this *Caesar) Close() {
+	if this.closed {
+		return
 	}
-	return err
+	this.quit <- errServerClosed
+	this.closed = true
+	close(this.quit)
 }
 
 func (this *Caesar) SetDebug(debug bool) {
