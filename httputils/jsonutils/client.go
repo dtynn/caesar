@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	CodeConnectionError = iota
+	codeNon = iota
+	CodeConnectionError
 	CodeReadResponseBodyError
 	CodeJsonDecodeError
 )
@@ -18,15 +19,15 @@ func newHTTPClient() (interface{}, error) {
 	return &http.Client{}, nil
 }
 
-func newClientError(code int, err error) error {
+func newSimpleClientError(code int, err error) error {
 	return NewAPIError(0, code, err.Error())
 }
 
-type Client struct {
+type SimpleClient struct {
 	pool *gopool.Pool
 }
 
-func NewClient() (*Client, error) {
+func NewSimpleClient() (*SimpleClient, error) {
 	poolCfg := gopool.Config{
 		Constructor: newHTTPClient,
 	}
@@ -35,18 +36,18 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{
+	return &SimpleClient{
 		pool: pool,
 	}, nil
 }
 
-func (this *Client) Do(req *http.Request, result interface{}) error {
+func (this *SimpleClient) Do(req *http.Request, result interface{}) (*http.Response, error) {
 	c := this.get()
 	defer this.release(c)
 
 	resp, err := c.Do(req)
 	if err != nil {
-		return newClientError(CodeConnectionError, err)
+		return nil, newSimpleClientError(CodeConnectionError, err)
 	}
 
 	defer resp.Body.Close()
@@ -55,7 +56,7 @@ func (this *Client) Do(req *http.Request, result interface{}) error {
 		// read response body
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return newClientError(CodeReadResponseBodyError, err)
+			return resp, newSimpleClientError(CodeReadResponseBodyError, err)
 		}
 
 		apierr := &APIError{}
@@ -65,31 +66,31 @@ func (this *Client) Do(req *http.Request, result interface{}) error {
 		}
 
 		apierr.StatusCode = resp.StatusCode
-		return apierr
+		return resp, apierr
 	}
 
 	// no need to parse response body
 	if result == nil {
-		return nil
+		return resp, nil
 	}
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return newClientError(CodeReadResponseBodyError, err)
+		return resp, newSimpleClientError(CodeReadResponseBodyError, err)
 	}
 
 	if err := json.Unmarshal(b, result); err != nil {
-		return newClientError(CodeJsonDecodeError, err)
+		return resp, newSimpleClientError(CodeJsonDecodeError, err)
 	}
 
-	return nil
+	return resp, nil
 }
 
-func (this *Client) get() *http.Client {
+func (this *SimpleClient) get() *http.Client {
 	v, _ := this.pool.Get()
 	return v.(*http.Client)
 }
 
-func (this *Client) release(c *http.Client) {
+func (this *SimpleClient) release(c *http.Client) {
 	this.pool.Put(c)
 }
